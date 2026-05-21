@@ -1,0 +1,28 @@
+{
+  "name": "lab06-devops-facundo",
+  "version": "1.0.0",
+  "description": "Aplicación base para el Laboratorio 06 de DevOps con GitHub Actions y Azure DevOps.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "lint": "node --check server.js",
+    "test": "jest --runInBand"
+  },
+  "keywords": [
+    "devops",
+    "github-actions",
+    "azure",
+    "ci-cd",
+    "nodejs"
+  ],
+  "author": "Facundo Rodriguez",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.3"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
+  }
+}
