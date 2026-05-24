@@ -1,0 +1,74 @@
+name: CD - Deploy to Azure VM
+
+on:
+  workflow_run:
+    workflows:
+      - CI - Build, Test and Package
+    types:
+      - completed
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  deploy:
+    name: Desplegar artifact en Azure VM
+    runs-on: ubuntu-latest
+
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Descargar artifact generado por CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifact
+          gh run download "${{ github.event.workflow_run.id }}" --name lab06-devops-artifact --dir artifact
+          ls -lh artifact
+
+      - name: Preparar clave SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.AZURE_VM_SSH_KEY }}" > ~/.ssh/lab06_azure_key
+          chmod 600 ~/.ssh/lab06_azure_key
+          ssh-keyscan -H "${{ secrets.AZURE_VM_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Copiar artifact a la VM
+        run: |
+          scp -i ~/.ssh/lab06_azure_key \
+            artifact/lab06-devops-artifact.tar.gz \
+            "${{ secrets.AZURE_VM_USER }}@${{ secrets.AZURE_VM_HOST }}:/tmp/lab06-devops-artifact.tar.gz"
+
+      - name: Ejecutar despliegue remoto
+        run: |
+          ssh -i ~/.ssh/lab06_azure_key "${{ secrets.AZURE_VM_USER }}@${{ secrets.AZURE_VM_HOST }}" << 'EOF'
+          set -e
+          mkdir -p /opt/lab06-devops
+          tar -xzf /tmp/lab06-devops-artifact.tar.gz -C /opt/lab06-devops
+          cd /opt/lab06-devops
+          chmod +x scripts/*.sh || true
+          bash scripts/deploy.sh
+          EOF
+
+      - name: Verificar endpoint publico
+        run: |
+          URL="http://${{ secrets.AZURE_VM_HOST }}:${{ secrets.APP_PORT }}/health"
+          echo "Verificando $URL"
+
+          for intento in {1..12}; do
+            if curl -fsS "$URL"; then
+              echo ""
+              echo "Despliegue verificado correctamente."
+              exit 0
+            fi
+
+            echo "Intento $intento fallido. Reintentando en 5 segundos..."
+            sleep 5
+          done
+
+          echo "El endpoint /health no respondio correctamente."
+          exit 1

@@ -9,6 +9,9 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-test-package:
     name: Validar aplicacion y generar artifact
@@ -43,7 +46,7 @@ jobs:
       - name: Crear paquete de despliegue
         run: |
           mkdir -p artifact
-          tar -czf artifact/lab06-devops-artifact.tar.gz app web docker-compose.yml .dockerignore README.md docs
+          tar -czf artifact/lab06-devops-artifact.tar.gz app web scripts docker-compose.yml .dockerignore README.md docs
 
       - name: Publicar artifact del laboratorio
         uses: actions/upload-artifact@v4
