@@ -22,12 +22,18 @@ jobs:
       contents: read
 
     steps:
+      - name: Descargar codigo del repositorio
+        uses: actions/checkout@v4
+
       - name: Descargar artifact generado por CI
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p artifact
-          gh run download "${{ github.event.workflow_run.id }}" --name lab06-devops-artifact --dir artifact
+          gh run download "${{ github.event.workflow_run.id }}" \
+            --repo "${{ github.repository }}" \
+            --name lab06-devops-artifact \
+            --dir artifact
           ls -lh artifact
 
       - name: Preparar clave SSH
