@@ -1,0 +1,53 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  nodeVersion: '20.x'
+
+stages:
+  - stage: Build_Test_Package
+    displayName: Build, test y package
+    jobs:
+      - job: validar_app
+        displayName: Validar aplicacion Lab06
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: Configurar Node.js
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - script: npm ci
+            displayName: Instalar dependencias
+            workingDirectory: app
+
+          - script: npm run lint
+            displayName: Validar sintaxis
+            workingDirectory: app
+
+          - script: npm test
+            displayName: Ejecutar pruebas automaticas
+            workingDirectory: app
+
+          - script: docker compose build
+            displayName: Construir imagen Docker
+
+          - script: |
+              mkdir -p $(Build.ArtifactStagingDirectory)
+              tar -czf $(Build.ArtifactStagingDirectory)/lab06-devops-azuredevops.tar.gz app web scripts docker-compose.yml .dockerignore README.md docs
+            displayName: Crear artifact
+
+          - publish: $(Build.ArtifactStagingDirectory)/lab06-devops-azuredevops.tar.gz
+            artifact: lab06-devops-azuredevops
+            displayName: Publicar artifact
